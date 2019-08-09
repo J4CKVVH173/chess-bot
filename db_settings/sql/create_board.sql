@@ -1,0 +1,1 @@
+INSERT INTO board (board, users_id) VALUES (?, ?);

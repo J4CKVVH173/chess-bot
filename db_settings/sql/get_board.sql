@@ -1,0 +1,1 @@
+select board from board where users_id = ?;

@@ -14,3 +14,10 @@ create table board (
     users_id integer not null unique,
     FOREIGN KEY (users_id) REFERENCES users(user_id)
 );
+
+create table feedback (
+    id integer primary key,
+    users_id integer not null,
+    message text,
+    FOREIGN KEY (users_id) REFERENCES users(user_id)
+)

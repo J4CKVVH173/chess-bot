@@ -9,7 +9,7 @@ import sqlite3
 from telegram import Update, Bot
 
 from chess_bot.extra_func import db_has, parsing_user_info, save_new_user
-from chess_bot.settings import BASE_DIR, HAVE_NOT_BOARD, HAVE_GAME, BOARD_DELETE
+from chess_bot.settings import BASE_DIR, HAVE_NOT_BOARD, HAVE_GAME, BOARD_DELETE, FEEDBACK
 
 from db_settings.connect import connect_to_db
 
@@ -83,13 +83,22 @@ def command_help(bot: Bot, update: Update) -> None:
     text = """
     Bot in active development. It will be work soon.
 /start - initializes the base parameters
+/feedback - leave you feedback or comment (Оставте свой отзыв или комментарий как в римере ниже)
+You should leave your feedback with this command like '/feedback You are amazing'
         
-/play - creates a clear board for a new game. If the game is already exist does not create a new one
+/play - creates a clear board for a new game. If the game is already exist does not create a new one.
+After run the game, you can move just typing commands to the chat. Example - e2e4 will move pawn from 
+e2 to e4.
         
 /board - returns a board of current game. If no games then returns nothing.
 
-After run the game, you can move just typing commands to the chat. Example - e2e4 will move pawn from 
-e2 to e4.
+/turn - returns whose turn is the turn.
+
+/check - checks for check you.
+
+/checkmate - returns info about the presence of checkmate.
+
+/complete - ends this game, delete current board if it is.
     """
     bot.send_message(chat_id=update.message.chat_id, text=text)
 
@@ -226,3 +235,49 @@ def command_is_check(bot: Bot, update: Update):
             bot.send_message(chat_id=chat_id, text=check)
         else:
             bot.send_message(chat_id=chat_id, text=HAVE_NOT_BOARD)
+
+
+def command_is_checkmate(bot: Bot, update: Update):
+    """
+    Метод проверяет, есть ли шах у текущей стороны.
+    :param bot: объект класса Bot, управляет ботом
+    :param update: объекта класса Update, содержит информацию об обновлении
+    :return: None
+    """
+    # создаем соединение с бд
+    conn = connect_to_db()
+    user_id = update.message.from_user.id
+    chat_id = update.message.chat_id
+
+    with open(os.path.join(BASE_DIR, 'db_settings', 'sql', 'get_board.sql'), 'r') as f, conn as cursor:
+        sql_get_board = f.read()
+        board = cursor.execute(sql_get_board, (user_id,))
+        # записываем объект курсора в виде массива в переменную. это массив картежей
+        board_list = list(board)
+        if db_has(board_list):
+            # достаем доску, на одного игрока, одна доска [(feh,)]
+            board = chess.Board(board_list[0][0])
+            # определение стороны хода
+            check = 'Yes' if board.is_checkmate() else 'No'
+            bot.send_message(chat_id=chat_id, text=check)
+        else:
+            bot.send_message(chat_id=chat_id, text=HAVE_NOT_BOARD)
+
+
+def command_feedback(bot: Bot, update: Update):
+    """
+    Метод проверяет, есть ли шах у текущей стороны.
+    :param bot: объект класса Bot, управляет ботом
+    :param update: объекта класса Update, содержит информацию об обновлении
+    :return: None
+    """
+    # создаем соединение с бд
+    conn = connect_to_db()
+    user_id = update.message.from_user.id
+    chat_id = update.message.chat_id
+    text = update.message.text
+
+    with open(os.path.join(BASE_DIR, 'db_settings', 'sql', 'add_feedback.sql'), 'r') as f, conn as cursor:
+        sql_add_feedback = f.read()
+        cursor.execute(sql_add_feedback, (text, user_id,))
+        bot.send_message(chat_id=chat_id, text=FEEDBACK)

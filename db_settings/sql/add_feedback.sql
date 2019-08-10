@@ -1,0 +1,1 @@
+insert into feedback (message, users_id) values (?, ?);

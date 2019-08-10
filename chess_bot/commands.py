@@ -1,5 +1,4 @@
 import os
-import time
 import chess
 import chess.svg
 import cairosvg
